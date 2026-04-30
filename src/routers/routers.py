@@ -1,16 +1,73 @@
-from fastapi import FastAPI, Request, Form
+import os
+from fastapi import Request, Form, Depends, APIRouter
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from loguru import logger
+from sqlalchemy.orm import Session
+from starlette import status
+from starlette.responses import JSONResponse
+from src.providers.supplier_api import get_item_from_sima
+from src.database.models import Product
+from src.database.session import get_db
 
-app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+router = APIRouter()
+BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, 'templates'))
 
-@app.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 async def read_item(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={}
+    )
 
-@app.post('/barcode')
-async def receive_barcode(barcode: str = Form(...)):
+@router.post('/barcode')
+async def receive_barcode(barcode: str = Form(...), db: Session = Depends(get_db)):
     logger.info(f"получен баркод: {barcode}")
-    return {'status': 'success', 'barcode': barcode}
+    raw_data = await get_item_from_sima(barcode)
+    if not raw_data:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={
+                'status': 'error',
+                'message': 'Товар не найден'
+                     }
+        )
+    sid = raw_data.get('sid')
+    existing_product = db.query(Product).filter(Product.sid == sid).first()
+    if existing_product:
+        existing_product.quantity += 1
+        db.commit()
+        db.refresh(existing_product)
+        product = existing_product
+        logger.info(f'Товар {product.sid} сохранен в БД')
+    else:
+        product = Product(
+            sid=sid,
+            name=raw_data.get('name', '')[:50],
+            price=float(raw_data.get('price', 0)),
+            wholesale_price=float(raw_data.get('price_wholesale', 0)),
+            barcode=barcode,
+            raw_api_data=raw_data,
+            quantity_supplier=raw_data.get('balance', 0),
+            photo_link = raw_data.get('agg_photo', None)
+        )
+        db.add(product)
+        db.commit()
+        db.refresh(product)
+
+    photo = raw_data.get('photo_link')
+    if isinstance(photo, list):
+        photo = photo[0]
+    elif raw_data.get('base_photo_url'):
+        photo = f'{raw_data['base_photo_url']}0.jpg'
+    else:
+        photo = None
+    return {
+        'status': 'success',
+        'sid': sid,
+        'name': raw_data.get('name'),
+        'price': raw_data.get('price'),
+        'photo': photo
+            }

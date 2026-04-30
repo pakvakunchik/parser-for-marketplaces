@@ -5,8 +5,9 @@ class ProductStatus(str, enum.Enum):
     modified_ai = 'modified_ai'
     not_modified_ai = 'not_modified_ai'
 
-class MarketplaceType(str, enum.Enum):
-    OZON = "ozon"
-    WILDBERRIES = "wb"
-    YANDEX = "yandex"
+# class MarketplaceType(str, enum.Enum):
+#     OZON = "ozon"
+#     WILDBERRIES = "wb"
+#     YANDEX = "yandex"
+
 
