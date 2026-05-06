@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     DB_HOST: str
     DB_NAME: str
     DB_PORT: str
-    SIMALAND_API_URL: str
-    SIMALAND_API_KEY: SecretStr
+    SIMALAND_API3_URL: str
+    SIMALAND_API3_KEY: SecretStr
     OPENROUTER_BASE_URL: str
     OPENROUTER_API_KEY: SecretStr
     model_config = SettingsConfigDict(
