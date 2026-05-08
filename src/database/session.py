@@ -1,5 +1,3 @@
-import asyncio
-
 from src.core.config import settings
 from src.database.base_model import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker, AsyncEngine
@@ -34,5 +32,4 @@ async def get_db():
 async def main():
     await init_db()
 
-if __name__ == '__main__':
-    asyncio.run(main())
+
