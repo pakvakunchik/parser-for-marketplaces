@@ -3,7 +3,6 @@ from loguru import logger
 from src.core.config import settings
 from src.core.constants import all_expends
 
-
 async def get_item_from_supplier(identifier: str = None)->dict:
     url = f"{settings.SUPPLIER_API3_URL}"
     if not identifier:
