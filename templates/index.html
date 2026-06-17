@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Приемка Sima-land</title>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com" type="text/javascript"></script>
     <style>
         body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; background: #f4f4f9; }
         #reader { width: 100%; max-width: 500px; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
@@ -13,8 +13,8 @@
             margin: 20px 0; width: 100%; max-width: 500px;
             display: flex; gap: 10px;
         }
-        input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        input[type="text"], input[type="number"] { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         button:hover { background: #0056b3; }
 
         #result-preview {
@@ -25,9 +25,46 @@
         }
         #res-img { width: 150px; height: auto; border-radius: 5px; }
         .status-msg { color: #666; font-size: 0.8em; margin-top: 10px; }
+
+        #ai-container {
+            width: 100%; max-width: 500px; background: white; padding: 20px;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        .ai-title { margin-top: 0; color: #333; font-size: 1.1em; font-weight: bold; }
+        .radio-group { display: flex; flex-direction: column; gap: 8px; margin: 15px 0; }
+        .radio-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px; color: #495057; }
+        .ai-btn { background: #28a745; width: 100%; margin-top: 10px; font-weight: bold; }
+        .ai-btn:hover { background: #218838; }
+        .ai-btn:disabled { background: #6c757d; cursor: not-allowed; }
+
+        #ai-result-window {
+            display: none; width: 100%; max-width: 500px; background: #fff;
+            padding: 20px; border-radius: 8px; margin-bottom: 20px; box-sizing: border-box;
+            text-align: left; font-size: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-top: 4px solid #28a745;
+        }
+        .diff-block { background: #f8f9fa; padding: 12px; border-radius: 6px; margin-top: 10px; border: 1px solid #e9ecef; }
+        .diff-title { font-weight: bold; color: #495057; border-bottom: 1px solid #dee2e6; padding-bottom: 4px; margin-bottom: 8px; }
     </style>
 </head>
 <body>
+
+    <div id="ai-result-window">
+        <div style="font-weight: bold; font-size: 1.1em; color: #28a745; margin-bottom: 12px; text-align: center;">✨ Карточка товара успешно преобразована!</div>
+
+        <div class="diff-block">
+            <div class="diff-title">Было (Данные поставщика):</div>
+            <p style="margin: 6px 0;"><b>Название:</b> <span id="ai-name-before"></span></p>
+            <p style="margin: 6px 0;"><b>Описание:</b> <span id="ai-desc-before"></span></p>
+        </div>
+
+        <div class="diff-block" style="background: #f4fbf6; border-color: #d4edda;">
+            <div class="diff-title" style="color: #155724;">Стало (SEO Оптимизация ИИ):</div>
+            <p style="margin: 6px 0;"><b>Название:</b> <span id="ai-name-after" style="color: #155724; font-weight: bold;"></span></p>
+            <p style="margin: 6px 0;"><b>Описание:</b> <span id="ai-desc-after" style="color: #212529; white-space: pre-line;"></span></p>
+        </div>
+    </div>
 
     <div id="result-preview">
         <img id="res-img" src="" alt="фото">
@@ -36,14 +73,102 @@
         <div class="status-msg" id="status-timer"></div>
     </div>
 
+    <div id="ai-container">
+        <div class="ai-title">🤖 Управление SEO-генератором</div>
+
+        <div class="radio-group">
+            <label class="radio-label">
+                <input type="radio" name="ai_mode" value="last" checked onchange="toggleAiInput()">
+                Последний добавленный/отсканированный товар
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="ai_mode" value="by_id" onchange="toggleAiInput()">
+                Поиск по внутреннему ID базы
+            </label>
+            <label class="radio-label">
+                <input type="radio" name="ai_mode" value="by_sid" onchange="toggleAiInput()">
+                Поиск по Артикулу (SID)
+            </label>
+        </div>
+
+        <input type="number" id="ai-search-value" placeholder="Введите значение..." style="display: none; margin-bottom: 10px; width: 100%; box-sizing: border-box;">
+
+        <button class="ai-btn" id="ai-submit-btn" onclick="runAiGeneration()">Преобразовать через ИИ</button>
+    </div>
+
     <div id="manual-input-container">
         <input type="text" id="manual-barcode" placeholder="Штрихкод или Артикул вручную">
         <button onclick="sendManualCode()">Найти</button>
     </div>
 
     <div id="reader"></div>
-
     <script>
+        function toggleAiInput() {
+            const mode = document.querySelector('input[name="ai_mode"]:checked').value;
+            const inputField = document.getElementById('ai-search-value');
+
+            if (mode === 'last') {
+                inputField.style.display = 'none';
+                inputField.value = '';
+            } else if (mode === 'by_id') {
+                inputField.style.display = 'block';
+                inputField.placeholder = 'Введите ID в базе данных (например, 1)';
+            } else if (mode === 'by_sid') {
+                inputField.style.display = 'block';
+                inputField.placeholder = 'Введите артикул SID (например, 10203971)';
+            }
+        }
+        function runAiGeneration() {
+            const mode = document.querySelector('input[name="ai_mode"]:checked').value;
+            const inputVal = document.getElementById('ai-search-value').value;
+            const btn = document.getElementById('ai-submit-btn');
+
+            let urlParams = new URLSearchParams();
+
+            if (mode === 'last') {
+                urlParams.append('last_added', 'true');
+            } else if (mode === 'by_id') {
+                if (!inputVal) { alert('Введите ID товара'); return; }
+                urlParams.append('product_id', inputVal);
+            } else if (mode === 'by_sid') {
+                if (!inputVal) { alert('Введите артикул SID'); return; }
+                urlParams.append('sid', inputVal);
+            }
+
+            btn.disabled = true;
+            btn.innerText = '🤖 Нейросеть генерирует контент...';
+            document.getElementById('ai-result-window').style.display = 'none';
+
+            fetch(`/products/ai_generate?${urlParams.toString()}`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.status === 404) {
+                    throw new Error('Товар не найден в базе данных. Проверьте ID/SID или сначала отсканируйте товар.');
+                }
+                if (!response.ok) {
+                    throw new Error('Внутренняя ошибка сервера при генерации текста.');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('ai-result-window').style.display = 'block';
+
+                document.getElementById('ai-name-before').innerText = data.before.name || 'Нет названия';
+                document.getElementById('ai-desc-before').innerText = data.before.description_of_product || 'Описание отсутствует';
+
+                document.getElementById('ai-name-after').innerText = data.after.name_of_ai || 'Ошибка генерации названия';
+                document.getElementById('ai-desc-after').innerText = data.after.description_ai || 'Ошибка генерации описания';
+            })
+            .catch(err => {
+                alert("Ошибка: " + err.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerText = 'Преобразовать через ИИ';
+            });
+        }
+
         function processCode(code) {
             let formData = new FormData();
             formData.append('barcode', code);
@@ -57,21 +182,20 @@
                 return response.json();
             })
             .then(data => {
-                if (data.status === 'success') {
-                    showResult(data);
-                }
+                showResult(data);
             })
             .catch(err => {
                 alert("Ошибка: " + err.message);
                 if (typeof html5QrcodeScanner !== 'undefined') html5QrcodeScanner.resume();
             });
         }
+
         function showResult(data) {
             document.getElementById('result-preview').style.display = 'block';
             document.getElementById('res-img').src = data.photo || '';
-            document.getElementById('res-name').innerText = data.name;
-            document.getElementById('res-sid').innerText = data.sid;
-            document.getElementById('res-qty').innerText = data.quantity;
+            document.getElementById('res-name').innerText = data.name || 'Без названия';
+            document.getElementById('res-sid').innerText = data.sid || '—';
+            document.getElementById('res-qty').innerText = (data.quantity !== undefined) ? data.quantity : 0;
 
             let seconds = 1;
             const timer = document.getElementById('status-timer');
@@ -86,21 +210,25 @@
                 }
             }, 1000);
         }
+
         function sendManualCode() {
             const code = document.getElementById('manual-barcode').value;
             if (code) {
                 processCode(code);
-                document.getElementById('manual-barcode').value = ""; // очистить поле
+                document.getElementById('manual-barcode').value = "";
             }
         }
+
         function onScanSuccess(decodedText, decodedResult) {
             html5QrcodeScanner.pause();
             processCode(decodedText);
         }
+
         let html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", { fps: 15, qrbox: {width: 250, height: 150} }
         );
         html5QrcodeScanner.render(onScanSuccess);
     </script>
+
 </body>
 </html>

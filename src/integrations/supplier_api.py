@@ -4,12 +4,12 @@ from src.core.config import settings
 from src.core.constants import all_expends
 
 async def get_item_from_supplier(identifier: str = None)->dict:
-    url = f"{settings.SUPPLIER_API3_URL}"
+    url = f"{settings.api.SUPPLIER_API3_URL}"
     if not identifier:
         logger.info(f'не передан {identifier}')
     headers = {
         'Accept': 'application/json',
-        'X-Api-Key': settings.SUPPLIER_API3_KEY.get_secret_value(),
+        'X-Api-Key': settings.api.SUPPLIER_API3_KEY.get_secret_value(),
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     params = {}
@@ -36,6 +36,6 @@ async def get_item_from_supplier(identifier: str = None)->dict:
             else:
                 items = []
             return items[0] if items else None
-        except Exception as e:
-            logger.error(e)
+        except Exception:
+            logger.error(f"Ошибка API поставщика. Статус-код: {response.status_code}, Текст: {response.text}")
             return None

@@ -3,7 +3,13 @@ from src.database.base_model import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker, AsyncEngine
 from loguru import logger
 
-async_engine: AsyncEngine = create_async_engine(settings.DB_URL, echo=True)
+async_engine: AsyncEngine = create_async_engine(
+    settings.db.URL,
+    pool_size=settings.engine.SIZE,
+    max_overflow=settings.engine.MAX_OVERFLOW,
+    pool_timeout=settings.engine.TIMEOUT,
+    pool_recycle=settings.engine.RECYCLE,
+    echo=True)
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False, class_=AsyncSession)
 
 async def init_db():
@@ -28,8 +34,3 @@ async def get_db():
         finally:
             await session.close()
             logger.info(f'отключено от {session}')
-
-async def main():
-    await init_db()
-
-

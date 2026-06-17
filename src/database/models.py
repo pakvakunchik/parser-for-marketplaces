@@ -7,8 +7,8 @@ from src.database.base_model import BaseModel, TimestampMixin
 
 class Product(BaseModel, TimestampMixin):
     sid: Mapped[int] = mapped_column(Integer, unique=True, index=True)
-    name: Mapped[str] = mapped_column(String(50))
-    name_of_ai: Mapped[Optional[str]] = mapped_column(String(50))
+    name: Mapped[str] = mapped_column(String(255))
+    name_of_ai: Mapped[Optional[str]] = mapped_column(String(255))
     description_of_product: Mapped[Optional[str]] = mapped_column(String)
     description_ai: Mapped[Optional[str]] = mapped_column(String)
     price: Mapped[float] = mapped_column(Numeric(10,2))

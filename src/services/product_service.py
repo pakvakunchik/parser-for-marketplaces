@@ -5,7 +5,6 @@ from src.services.supplier_services import check_raw_data
 from src.database.models import Product
 from src.services.photo_service import get_photo
 
-
 class ProductService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -35,5 +34,5 @@ class ProductService:
             )
             product = await self.repo.create(product)
         await get_photo(raw_data)
-
         return product
+
