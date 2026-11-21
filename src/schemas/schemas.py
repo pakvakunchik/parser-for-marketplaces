@@ -1,8 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 from src.database.models_enum import ProductStatus
+
 
 class ProductSchema(BaseModel):
     id: int
@@ -47,4 +50,5 @@ class BarcodeParserResponse(BaseModel):
     sid: int
     name: str
     price: Decimal
+    quantity: int = 0
     photo: Optional[str] = None
