@@ -8,17 +8,14 @@ class RawDataCleaner:
         self.raw_api_data = raw_api_data or {}
 
     async def clean_data(self, keywords: list[str]) -> dict:
-        logger.info(f"получен сырой джейсон: {len(self.raw_api_data)} записей")
+        logger.info(f"Получен сырой JSON: {len(self.raw_api_data)} записей")
         try:
-            clean_data = {}
+            clean_data: dict = {}
+            lower_keywords = [word.lower() for word in (keywords or [])]
             for key, value in self.raw_api_data.items():
-                if any(word.lower() in key.lower() for word in keywords):
+                if any(word in key.lower() for word in lower_keywords):
                     clean_data[key] = value
             return clean_data
         except Exception as e:
-            logger.error(f'Ошибка очистки данных от поставщика: {e}')
-
-
-
-
-
+            logger.error(f"Ошибка очистки данных от поставщика: {e}")
+            return {}
