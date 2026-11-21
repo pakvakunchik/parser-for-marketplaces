@@ -139,7 +139,7 @@
             btn.innerText = '🤖 Нейросеть генерирует контент...';
             document.getElementById('ai-result-window').style.display = 'none';
 
-            fetch(`/products/ai_generate?${urlParams.toString()}`, {
+            fetch(`/ai_generate?${urlParams.toString()}`, {
                 method: 'POST'
             })
             .then(response => {

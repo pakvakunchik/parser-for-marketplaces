@@ -1,24 +1,27 @@
 import os
 from typing import Optional
+
 from fastapi import Request, Form, Depends, APIRouter, HTTPException, Query
 from fastapi.templating import Jinja2Templates
 from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+
 from src.core.constants import BASE_DIR
+from src.core.constants import first_keys
 from src.database.session import get_db
 from src.exceptions.product_exceptions import ProductNotFoundError
 from src.integrations.github_ai import AiGenerator
 from src.repositories.product_repository import ProductRepository
-from src.schemas.schemas import ProductResponse, AIGenerateResponse, ProductSchema, BarcodeParserResponse, AIInputData
+from src.schemas.schemas import AIGenerateResponse, ProductSchema, BarcodeParserResponse, AIInputData
 from src.services.product_service import ProductService
 from src.services.rawdata_cleaner_service import RawDataCleaner
-from src.core.constants import first_keys
 
 router = APIRouter()
 templates = Jinja2Templates(directory=os.path.join(BASE_DIR, 'templates'))
 
-@router.get("/", response_model=ProductResponse, status_code=status.HTTP_200_OK)
+
+@router.get("/", status_code=status.HTTP_200_OK)
 async def read_item(request: Request):
     return templates.TemplateResponse(
         request=request,
@@ -47,7 +50,8 @@ async def receive_barcode(barcode: str = Form(...), db: AsyncSession = Depends(g
         'sid': product.sid,
         'name': product.name,
         'price': product.price,
-        'photo': product.photo_link
+        'photo': product.photo_link,
+        'quantity': product.quantity
     }
 
 @router.post('/ai_generate', response_model=AIGenerateResponse, status_code=status.HTTP_201_CREATED)
